@@ -5,6 +5,13 @@ minor for new features or games, patch for fixes.
 
 ## [Unreleased]
 
+### Added
+- **Phones no longer need to be on the host's Wi-Fi** (website version). When there is no direct route
+  between a phone and the TV computer (a different Wi-Fi, mobile data, guest Wi-Fi with client
+  isolation), the connection now goes through a TURN relay: the free public Open Relay server by
+  default, or your own with the new `TURN_URL` repository variable (a credentials endpoint such as a free
+  Metered account's) or `ICE_SERVERS`.
+
 ## [1.0.0] - 2026-10-08
 
 First release: Party Hub as a free website. Open <https://marzoman5.github.io/Party-games-online-/> on the

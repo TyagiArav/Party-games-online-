@@ -3,8 +3,9 @@
 > **Party quick start**
 > 1. On whatever computer is connected to the TV, open **<https://marzoman5.github.io/Party-games-online-/>**
 >    (Chrome, Edge, Firefox or Safari) and press **F** for fullscreen. Nothing to install.
-> 2. Everyone's phone on the **same Wi-Fi** as that computer → scan the **QR code** on the TV
->    (or open the link shown under it and type the 4-letter room code).
+> 2. Everyone scans the **QR code** on the TV with their phone (or opens the link shown under it and
+>    types the 4-letter room code). Any Wi-Fi or mobile data works; the same Wi-Fi as the computer is
+>    the fastest.
 > 3. Pick a name + character, tap **READY**. The first player (👑 leader) picks **Kart Party**, **Smash Party** or **⚡ Party Rush** on their phone.
 > 4. Leader taps **START**. After each match the leader picks **Rematch / Change Settings / Switch Game / Lobby**.
 >
@@ -50,7 +51,7 @@ two ways to connect them, with the same games, screens and rules:
 |---|---|---|
 | Start | open <https://marzoman5.github.io/Party-games-online-/> | `npm install && npm start` on a laptop |
 | Phones talk to the host | **directly** (WebRTC data channels) | through the Node server on the laptop (WebSocket) |
-| Needs | internet to *join* (a free signalling service); phones on the host's Wi-Fi | nothing but the Wi-Fi; no internet at all |
+| Needs | internet (a free signalling service to join); phones on **any** Wi-Fi or mobile data | nothing but the Wi-Fi; no internet at all; phones on the laptop's Wi-Fi |
 | Motion sensors (Party Rush, tilt steering) | work out of the box (the site is HTTPS) | need `npm run start:https` + a certificate warning per phone |
 | Cost | free (static hosting; free public signalling + STUN) | free |
 
@@ -61,16 +62,29 @@ connection offer to the host page, then talks to it over a direct WebRTC connect
 third party is involved (on the same Wi-Fi, game input stays on the local network). Two independent free services are
 used at once so one outage doesn't stop people joining: the **PeerJS** cloud server, with public
 **Nostr relays** as the fallback (messages encrypted with the room code). Players already in the game keep
-playing if both go down; only new joins wait. Free public **STUN** servers help phones find a route; a
-**TURN** relay is optional (none by default). All of it is configurable in
-[`src/net/rtc/config.ts`](src/net/rtc/config.ts) or with repository variables at build time
-(`ICE_SERVERS`, `PEERJS`, `NOSTR`; see `.github/workflows/deploy.yml`).
+playing if both go down; only new joins wait. Free public **STUN** servers help phones find a direct route.
 
-**If a phone can't connect** it says so instead of spinning: *"Can't connect to the game… Connect this phone
-to the same Wi-Fi as the computer showing the game"* (guest Wi-Fi with client isolation and some mobile
-networks block direct connections), *"You seem to be offline"* (no signalling service reachable), or
-*"Room ABCD not found"*. When the venue's network blocks direct connections, fall back to the
-[local route](#local--offline-npm-start) or a phone/laptop hotspot.
+**Phones on another network.** A phone doesn't have to be on the host's Wi-Fi: on mobile data, on a
+different Wi-Fi, or on guest Wi-Fi that isolates devices, there is often no direct route between it and
+the TV computer, so the connection goes through a **TURN relay** instead (the phone and the host both
+connect out to the relay, which forwards the game traffic). By default that's the free public
+[Open Relay](https://www.metered.ca/tools/openrelay/) server, over UDP, TCP or TLS on ports 80/443 so it
+gets through strict networks too. Relayed play adds the round trip to the
+relay (a little more latency); phones on the same Wi-Fi as the host still connect directly. The public relay is a best-effort community service,
+so for a party that depends on it use your own: create a TURN account (e.g. a free Metered plan)
+and set the repository variable **`TURN_URL`** to its credentials URL
+(`https://<app>.metered.live/api/v1/turn/credentials?apiKey=…`; any endpoint that returns an
+`RTCIceServer[]` or `{"iceServers": …}` JSON works), or put fixed servers in **`ICE_SERVERS`**.
+
+All of it is configurable in [`src/net/rtc/config.ts`](src/net/rtc/config.ts) or with repository
+variables at build time (`ICE_SERVERS`, `TURN_URL`, `PEERJS`, `NOSTR`; see `.github/workflows/deploy.yml`).
+
+**If a phone can't connect** it says so instead of spinning: *"Couldn't connect to the game screen, not
+even through the relay… Try switching between Wi-Fi and mobile data, or connect this phone to the same
+Wi-Fi as the computer"* (the network blocks both direct and relayed connections, or the relay is down),
+*"You seem to be offline"* (no signalling service reachable), or *"Room ABCD not found"*. If that keeps
+happening, set your own `TURN_URL` (above), or fall back to the [local route](#local--offline-npm-start)
+or a phone/laptop hotspot.
 
 **Links.** The phone page is `…/Party-games-online-/play/?room=ABCD`; typing
 `…/Party-games-online-/play/ABCD` also works (GitHub Pages' `404.html` forwards it, no server needed).
@@ -576,7 +590,7 @@ results), Smash (sandbox attack, match jump) and Party Rush (one-tap join, mashi
 touches; phone drop → same seat; host reload → same room, players and seats, phones reconnect on their own;
 second tab takes over and the first takes it back; wrong code → "not found"; PeerJS down → joins via Nostr,
 Nostr down → joins via PeerJS; no signalling at all → phone "offline" screen and host warning; UDP blocked
-(guest-Wi-Fi-like) → phone "connect to the same Wi-Fi" screen.
+and no relay (strict-guest-Wi-Fi-like) → phone "couldn't connect… same Wi-Fi" screen.
 
 **Party Rush coverage** (`tests/rush-*.spec.ts`, ~20 min; `npm run test:rush`, `npm run test:motion`): real
 phone pages (iPhone + Android portrait) join with one tap, play touch-fallback rounds and get results, and a
@@ -733,9 +747,12 @@ Judgment calls made while building (the brief said "decide, document, keep going
   (players touch it constantly while racing, so it rarely matters).
 - **Tilt steering requires HTTPS** (`npm run start:https`) and clicking through a certificate
   warning on each phone.
-- Phones and host must reach each other directly (same Wi-Fi). Networks with client isolation (many
-  guest/hotel Wi-Fi) block that on both routes — use the main network or a phone/laptop hotspot. On the
-  website, phones on mobile data *may* connect through STUN, but often can't without a TURN server.
+- **Local route (`npm start`)**: phones must reach the laptop directly (same Wi-Fi). Networks with
+  client isolation (many guest/hotel Wi-Fi) block that — use the main network, a phone/laptop hotspot,
+  or the website.
+- **Website**: phones on another network or mobile data connect through the TURN relay. The default
+  public relay has no uptime promise and adds latency; set your own `TURN_URL` for a party that relies on
+  it (see [Hosting](#hosting-the-website-or-npm-start)).
 - Only one host screen per room; opening the game in a second tab takes over the room (the first
   tab shows "open in another tab").
 - **Website vs `npm start` differences**: on the website a room lives in the host tab, so if that tab is

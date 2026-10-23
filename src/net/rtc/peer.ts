@@ -20,6 +20,8 @@ export class RtcPeer {
   private opened = false;
   private ended = false;
   private discTimer = 0;
+  /** ICE servers still being resolved (TURN credentials fetch); applied before gathering starts. */
+  private readonly iceReady: Promise<void>;
   onopen: (() => void) | null = null;
   onmessage: ((data: string) => void) | null = null;
   onend: ((why: PeerEnd) => void) | null = null;
@@ -28,9 +30,15 @@ export class RtcPeer {
 
   constructor(
     readonly cid: string,
-    iceServers: RTCIceServer[],
+    iceServers: RTCIceServer[] | Promise<RTCIceServer[]>,
   ) {
-    this.pc = new RTCPeerConnection({ iceServers });
+    const now = Array.isArray(iceServers);
+    this.pc = new RTCPeerConnection({ iceServers: now ? iceServers : [] });
+    this.iceReady = now
+      ? Promise.resolve()
+      : iceServers.then((list) => {
+          if (!this.ended) this.pc.setConfiguration({ ...this.pc.getConfiguration(), iceServers: list });
+        });
     this.ctl = this.pc.createDataChannel('ctl', { negotiated: true, id: 0, ordered: true });
     this.inp = this.pc.createDataChannel('in', { negotiated: true, id: 1, ordered: true, maxRetransmits: 0 });
     for (const ch of [this.ctl, this.inp]) {
@@ -67,6 +75,7 @@ export class RtcPeer {
 
   /** Phone side. */
   async makeOffer(): Promise<void> {
+    await this.iceReady;
     const offer = await this.pc.createOffer();
     await this.pc.setLocalDescription(offer);
     this.onsignal?.({ kind: 'offer', cid: this.cid, sdp: this.pc.localDescription?.sdp ?? offer.sdp });
@@ -74,6 +83,7 @@ export class RtcPeer {
 
   /** Host side. */
   async acceptOffer(sdp: string): Promise<void> {
+    await this.iceReady;
     await this.pc.setRemoteDescription({ type: 'offer', sdp });
     this.remoteReady();
     const answer = await this.pc.createAnswer();

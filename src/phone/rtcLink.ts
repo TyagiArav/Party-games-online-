@@ -7,13 +7,13 @@
  * the link with a code Net turns into a plain-language screen instead of spinning forever.
  */
 import type { Link, LinkClose } from '../net/link';
-import { hostPeerId, rtcConfig } from '../net/rtc/config';
+import { hostPeerId, resolveIceServers, rtcConfig } from '../net/rtc/config';
 import { NostrSignal } from '../net/rtc/nostrSignal';
 import { RtcPeer } from '../net/rtc/peer';
 import { PeerJsSignal } from '../net/rtc/peerjsSignal';
 import { randomId, type SignalMsg, type Signaller } from '../net/rtc/signal';
 
-/** No direct route to the host (ICE failed): guest Wi-Fi isolation, some mobile carriers… */
+/** No route to the host, direct or relayed (ICE failed): strict guest Wi-Fi, relay unreachable… */
 export const RTC_CLOSE_NO_DIRECT = 4100;
 /** No signalling service reachable (phone offline, or every service down). */
 export const RTC_CLOSE_NO_SIGNAL = 4101;
@@ -24,11 +24,11 @@ export const RTC_CLOSE_NO_ROOM = 4102;
 const SIGNAL_WAIT_MS = 10_000;
 /** Offer sent, no answer: no such room (the PeerJS server holds offers ~5 s for a reloading host). */
 const ANSWER_WAIT_MS = 12_000;
-/** Answer received, data channel not open yet: the direct connection is blocked. */
-const ICE_WAIT_MS = 15_000;
+/** Answer received, data channel not open yet: no route, direct or relayed (a TURN relay can take a few s). */
+const ICE_WAIT_MS = 20_000;
 
 export const MSG_NO_DIRECT =
-  "Your phone couldn't connect directly to the game screen. This happens on guest Wi-Fi and some mobile networks. Connect this phone to the same Wi-Fi as the computer showing the game, then tap Try again.";
+  "Your phone couldn't connect to the game screen, not even through the relay. This happens on some guest Wi-Fi and strict networks. Try switching between Wi-Fi and mobile data, or connect this phone to the same Wi-Fi as the computer showing the game, then tap Try again.";
 export const MSG_NO_SIGNAL =
   "Can't reach the joining service. Check that this phone is online (Wi-Fi or mobile data), then tap Try again.";
 
@@ -66,7 +66,7 @@ export function openRtcLink(room: string): Link {
   const cfg = rtcConfig();
   const { signals } = signalsFor(room);
   const hostId = hostPeerId(room);
-  const peer = new RtcPeer(randomId(), cfg.iceServers);
+  const peer = new RtcPeer(randomId(), resolveIceServers(cfg));
   let done = false;
   let answered = false;
   let timer = 0;

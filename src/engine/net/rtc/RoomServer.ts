@@ -16,7 +16,7 @@
  */
 import { Hub, normalizeRoomCode, type Client, type Logger, type Room, type RoomSnapshot, type Sock } from '../../../net/hub';
 import type { Link } from '../../../net/link';
-import { hostPeerId, rtcConfig, rtcOverrideQuery, type RtcConfig } from '../../../net/rtc/config';
+import { hostPeerId, resolveIceServers, rtcConfig, rtcOverrideQuery, type RtcConfig } from '../../../net/rtc/config';
 import { NostrSignal } from '../../../net/rtc/nostrSignal';
 import { RtcPeer } from '../../../net/rtc/peer';
 import { PeerJsSignal } from '../../../net/rtc/peerjsSignal';
@@ -345,7 +345,7 @@ export class RoomServer {
 
   private acceptPhone(from: string, cid: string, sdp: string): void {
     const now = performance.now();
-    const peer = new RtcPeer(cid, this.cfg.iceServers);
+    const peer = new RtcPeer(cid, resolveIceServers(this.cfg));
     const e: PeerEntry = { peer, from, client: null, createdAt: now, openedAt: 0, lastRx: now, closing: false };
     this.peers.set(cid, e);
     peer.onsignal = (m) => this.replyTo(from, m);
