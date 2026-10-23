@@ -1,6 +1,9 @@
 # Every push to main builds the static site and deploys it to GitHub Pages.
 # Optional repository variables (Settings -> Secrets and variables -> Actions -> Variables):
-#   ICE_SERVERS  JSON list of STUN/TURN servers, e.g. to add a TURN server (see src/net/rtc/config.ts)
+#   ICE_SERVERS  JSON list of STUN/TURN servers, replacing the defaults (see src/net/rtc/config.ts)
+#   TURN_URL     URL returning TURN credentials as JSON (e.g. a free Metered account's
+#                https://<app>.metered.live/api/v1/turn/credentials?apiKey=...): a reliable relay for
+#                phones that aren't on the host's Wi-Fi (the built-in public relay is best-effort)
 #   PEERJS       PeerJS signalling server URLs (comma-separated)
 #   NOSTR        Nostr relay URLs (comma-separated)
 name: Deploy to GitHub Pages
@@ -34,6 +37,7 @@ jobs:
         env:
           STATIC_BASE: /${{ github.event.repository.name }}/
           VITE_ICE_SERVERS: ${{ vars.ICE_SERVERS }}
+          VITE_TURN_URL: ${{ vars.TURN_URL }}
           VITE_PEERJS: ${{ vars.PEERJS }}
           VITE_NOSTR: ${{ vars.NOSTR }}
       - uses: actions/upload-pages-artifact@v3

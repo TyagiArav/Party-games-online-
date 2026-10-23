@@ -31,7 +31,9 @@ export interface Signals {
 export function sigQuery(s: Signals = {}): string {
   if (LIVE) return ''; // the site's own (public) services
   const v = (on: boolean | '' | undefined, url: string): string => (on === '' ? '' : on === false ? DEAD_URL : url);
-  return `peerjs=${encodeURIComponent(v(s.peerjs ?? true, PEERJS_URL))}&nostr=${encodeURIComponent(v(s.nostr ?? true, NOSTR_URL))}`;
+  // No STUN/TURN: host and phone run on this machine, and a public relay would route around the
+  // "direct route blocked" browser (and make the suite depend on an outside service).
+  return `ice=${encodeURIComponent('[]')}&peerjs=${encodeURIComponent(v(s.peerjs ?? true, PEERJS_URL))}&nostr=${encodeURIComponent(v(s.nostr ?? true, NOSTR_URL))}`;
 }
 
 export interface HostState {

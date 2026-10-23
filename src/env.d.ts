@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_TRANSPORT?: string;
   /** WebRTC settings, see src/net/rtc/config.ts. */
   readonly VITE_ICE_SERVERS?: string;
+  readonly VITE_TURN_URL?: string;
   readonly VITE_PEERJS?: string;
   readonly VITE_NOSTR?: string;
 }

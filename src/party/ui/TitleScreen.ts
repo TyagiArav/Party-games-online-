@@ -53,7 +53,7 @@ export class TitleScreen implements ScreenView {
           h('span', 'kp-step-n', '2'),
           h('span', {}, 'or open ', this.url, ' and enter code ', this.urlCode),
         ),
-        h('li', {}, h('span', 'kp-step-n kp-wifi', '📶'), h('span', {}, 'Same Wi-Fi as this screen')),
+        h('li', {}, h('span', 'kp-step-n kp-wifi', '📶'), h('span', {}, 'Any Wi-Fi or mobile data')),
       ),
       this.status,
     );

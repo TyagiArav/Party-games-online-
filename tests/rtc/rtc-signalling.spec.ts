@@ -2,8 +2,8 @@
  * R4. Signalling resilience and honest failures:
  *       - PeerJS down: phones still join through the Nostr fallback (and vice versa);
  *       - no signalling service at all: the phone says it seems offline instead of spinning;
- *       - no direct route (UDP blocked, like guest Wi-Fi isolation): the phone says so and suggests
- *         joining the host's Wi-Fi.
+ *       - no route at all (UDP blocked and no relay, like strict guest Wi-Fi): the phone says so and
+ *         suggests switching networks or joining the host's Wi-Fi.
  */
 import { expect, test } from '@playwright/test';
 import { collectErrors } from '../helpers';
@@ -78,7 +78,7 @@ test('host title warns when phones cannot reach it (no signalling)', async ({ pa
   await expect(page.locator('.kp-title-status.kp-bad')).toContainText('joining service');
 });
 
-test('direct connection blocked: the phone explains and suggests the host Wi-Fi', async ({ page }) => {
+test('no route to the host: the phone explains and suggests the host Wi-Fi', async ({ page }) => {
   test.setTimeout(120_000);
   const st = await openRtcHost(page, { stub: true });
   const blocked = await launchBlockedBrowser();
